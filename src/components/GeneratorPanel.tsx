@@ -24,51 +24,71 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
   const [inputMode, setInputMode] = useState<'upload' | 'paste'>('upload');
   const [isParsing, setIsParsing] = useState(false);
   const [isTypeOpen, setIsTypeOpen] = useState(false);
+  const [inputText, setInputText] = useState('');
   
   const [data, setData] = useState<CreativeData>({
     websiteUrl: 'https://abilytics.ai',
     brandColors: ['#021a5a', '#00b15c', '#007cd8'],
     creativeType: 'hiring',
-    headline: 'Hiring - Immediate',
+    headline: 'Hiring',
     subheadline: '',
-    cta: 'send resume',
+    cta: 'SEND RESUME',
     hashtags: '#Abilytics #AI #Hiring',
     style: {
       creativityLevel: 30,
       brandStrictness: 95,
     },
     email: 'syno.k@abilytics.com',
-    location: 'Bangalore / Remote | US overlap hours',
-    experience: '0–1 year',
-    points: [
-      "Prospect target companies through cold calls, emails, and LinkedIn outreach",
-      "Research accounts, personalize messaging, and book qualified meetings.",
-      "Work closely with founders, sales, and marketing teams on GTM initiatives."
-    ]
+    location: '',
+    experience: '',
+    points: []
   });
 
-  const runAnalysis = () => {
+  const runAnalysis = (text: string) => {
     setIsParsing(true);
+    setInputText(text);
+    
+    // Simulate Intelligent AI Extraction
     setTimeout(() => {
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const extractedData: Partial<CreativeData> = {};
+      
+      // 1. Role Extraction (Aggressive cleaning)
+      const rawRole = lines[0] || 'Professional Role';
+      extractedData.role = rawRole
+        .replace(/\(to target.*\)/gi, '')
+        .replace(/role|position|:/gi, '')
+        .replace(/[. ]+$/, '')
+        .trim();
+      
+      // 2. Location & Experience (Keyword-based strict search)
+      const locLine = lines.find(l => l.toLowerCase().includes('location:'));
+      extractedData.location = locLine ? locLine.split(':')[1].trim() : 'Remote / Hybrid';
+
+      const expLine = lines.find(l => l.toLowerCase().includes('experience:'));
+      extractedData.experience = expLine ? expLine.split(':')[1].trim() : '2-4 Years';
+
+      // 3. High-End Copywriting
+      extractedData.headline = 'Hiring';
+      extractedData.subheadline = `We are seeking a high-performance ${extractedData.role} to drive our US-market expansion and deliver agentic AI solutions to enterprise leaders.`;
+
+      // 4. Professional Points
+      extractedData.points = [
+        "Strategically target and prospect US-market accounts",
+        "Orchestrate outbound outreach via calls and LinkedIn",
+        "Qualify high-intent leads and manage pipeline growth",
+        "Collaborate on GTM strategies for AI-native solutions"
+      ];
+
       setData(prev => ({
         ...prev,
-        role: 'Business Development Associate',
-        headline: 'Hiring - Immediate',
-        subheadline: 'Abilytics is hiring a Business Development Associate to support outbound sales, pipeline generation, and AI-focused business growth.',
-        points: [
-          "Prospect target companies through cold calls, emails, and LinkedIn outreach",
-          "Research accounts, personalize messaging, and book qualified meetings.",
-          "Work closely with founders, sales, and marketing teams on GTM initiatives.",
-          "Learn and position AI, cloud, analytics, and engineering solutions.",
-          "Support pipeline growth across US-market outreach campaigns."
-        ],
-        experience: '0–1 year',
-        location: 'Bangalore / Remote | US overlap hours',
-        email: 'syno.k@abilytics.com',
-        cta: 'send resume'
+        ...extractedData,
+        cta: 'SEND RESUME',
+        email: 'syno.k@abilytics.com'
       }));
+      
       setIsParsing(false);
-    }, 1500);
+    }, 1200);
   };
 
   const handleUpdatePoint = (index: number, value: string) => {
@@ -143,7 +163,7 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
           </div>
         </div>
 
-        {/* SECTION 1: JOB DESCRIPTION INPUT */}
+        {/* SECTION 1: SOURCE CONTENT */}
         <section className="space-y-6 pt-4 border-t border-slate-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -169,7 +189,7 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
           {inputMode === 'upload' ? (
             <UploadZone 
               label="Click to upload Requirement Doc" 
-              onUpload={runAnalysis} 
+              onUpload={() => runAnalysis("Uploaded Content Summary")} 
               icon="upload"
               multiple={false}
             />
@@ -177,8 +197,13 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
             <div className="space-y-2">
               <textarea 
                 className="w-full h-32 bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-[#007cd8] focus:ring-4 focus:ring-[#007cd8]/5 hover:shadow-md transition-all custom-scrollbar resize-none"
-                placeholder="Paste JD text here to auto-populate fields..."
-                onChange={(e) => e.target.value.length > 50 && runAnalysis()}
+                placeholder="Paste text here to auto-populate fields..."
+                value={inputText}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setInputText(val);
+                  if (val.length > 20) runAnalysis(val);
+                }}
               />
             </div>
           )}
@@ -196,7 +221,7 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
         </section>
 
         {/* SECTION 2: BRAND IDENTITY */}
-        <section className="space-y-6">
+        <section className="space-y-6 pt-4 border-t border-slate-100">
           <div className="flex items-center space-x-2">
             <div className="w-1.5 h-1.5 rounded-full bg-[#00b15c]" />
             <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Visual Identity</h3>
@@ -248,29 +273,27 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-1.5 h-1.5 rounded-full bg-[#021a5a]" />
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Editable Poster Content</h3>
-            </div>
-            <div className="flex items-center space-x-1.5 text-[9px] font-bold text-[#007cd8] uppercase tracking-widest bg-[#007cd8]/5 px-2 py-1 rounded">
-               <Edit3 className="w-2.5 h-2.5" />
-               <span>Ready for edits</span>
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Editable Content</h3>
             </div>
           </div>
 
           <div className="space-y-5">
             <Input 
-              label="Main Headline" 
+              label="Headline" 
               value={data.headline}
-              className="bg-white hover:shadow-md focus:ring-4 focus:ring-[#007cd8]/5 transition-all"
+              className="bg-white hover:shadow-md transition-all"
               onChange={(e) => setData({ ...data, headline: e.target.value })}
             />
+
             <Input 
               label="Job Role / Position" 
               value={data.role || ''}
-              className="bg-white hover:shadow-md focus:ring-4 focus:ring-[#007cd8]/5 transition-all"
+              className="bg-white hover:shadow-md transition-all"
               onChange={(e) => setData({ ...data, role: e.target.value })}
             />
+
             <div className="space-y-2 group">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Introduction / Description</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Description / Subheadline</label>
               <textarea 
                 className="w-full h-24 bg-white border border-slate-200 rounded-xl p-4 text-sm text-slate-900 focus:outline-none focus:border-[#007cd8] focus:ring-4 focus:ring-[#007cd8]/5 hover:shadow-md transition-all custom-scrollbar resize-none"
                 value={data.subheadline}
@@ -280,7 +303,7 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
 
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Key Requirements (Editable)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Key Points (Requirements)</label>
                 <button 
                   onClick={handleAddPoint}
                   className="text-[10px] font-bold text-[#007cd8] hover:text-[#021a5a] transition-colors uppercase tracking-widest cursor-pointer"
@@ -293,9 +316,9 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
                   <div key={i} className="flex items-center space-x-3 group">
                     <div className="flex-1">
                       <Input 
-                        placeholder={`Requirement ${i + 1}`}
+                        placeholder={`Point ${i + 1}`}
                         value={point}
-                        className="bg-white hover:shadow-md focus:ring-4 focus:ring-[#007cd8]/5 transition-all"
+                        className="bg-white hover:shadow-md transition-all"
                         onChange={(e) => handleUpdatePoint(i, e.target.value)}
                       />
                     </div>
@@ -311,8 +334,13 @@ export default function GeneratorPanel({ onGenerate, isGenerating }: GeneratorPa
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Input label="HR Email Address" value={data.email} className="bg-white" onChange={(e) => setData({ ...data, email: e.target.value })} />
-              <Input label="Action Button Label" value={data.cta} className="bg-white" onChange={(e) => setData({ ...data, cta: e.target.value })} />
+              <Input label="HR Email Address" value={data.email || ''} className="bg-white" onChange={(e) => setData({ ...data, email: e.target.value })} />
+              <Input label="CTA Label" value={data.cta || ''} className="bg-white" onChange={(e) => setData({ ...data, cta: e.target.value })} />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Experience" value={data.experience || ''} className="bg-white" onChange={(e) => setData({ ...data, experience: e.target.value })} />
+              <Input label="Location" value={data.location || ''} className="bg-white" onChange={(e) => setData({ ...data, location: e.target.value })} />
             </div>
           </div>
         </section>

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ZoomIn, Download as DownloadIcon, 
   Layout, Smartphone, Monitor,
-  Sparkles, CheckCircle2, ShieldCheck, Zap,
+  Sparkles, ShieldCheck, Zap,
   ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,12 +29,6 @@ const platforms = [
   { id: 'landscape', label: 'Landscape', icon: Monitor, aspect: 'aspect-[16/9]' },
 ];
 
-const loadingSteps = [
-  { icon: Sparkles, text: "Generating high-end visual..." },
-  { icon: ShieldCheck, text: "Applying brand system..." },
-  { icon: Zap, text: "Optimizing typography..." }
-];
-
 export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPanelProps) {
   const [selectedPlatform, setSelectedPlatform] = useState('linkedin');
   const [loadingStep, setLoadingStep] = useState(0);
@@ -43,11 +37,9 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
   useEffect(() => {
     if (isGenerating) {
       const interval = setInterval(() => {
-        setLoadingStep((prev) => (prev + 1) % loadingSteps.length);
+        setLoadingStep((prev) => (prev + 1) % 3);
       }, 2000);
       return () => clearInterval(interval);
-    } else {
-      setLoadingStep(0);
     }
   }, [isGenerating]);
 
@@ -63,13 +55,6 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
     } catch (err) {
       console.error('Failed to download image:', err);
     }
-  };
-
-  const getRoleFontSize = (role: string = '', pointCount: number = 0) => {
-    if (pointCount > 4) return 'text-[20px]';
-    if (role.length > 35) return 'text-lg';
-    if (role.length > 25) return 'text-xl';
-    return 'text-[21px]';
   };
 
   const currentPlatform = platforms.find(p => p.id === selectedPlatform) || platforms[0];
@@ -98,7 +83,7 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
         </div>
 
         <div className="flex items-center space-x-3">
-          <button className="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-900 transition-colors shadow-sm">
+          <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-slate-900 shadow-sm transition-colors">
             <ZoomIn className="w-4 h-4" />
           </button>
           <button 
@@ -128,7 +113,7 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
               <div className="w-16 h-16 border-4 border-slate-100 border-t-[#007cd8] rounded-full animate-spin shadow-sm" />
               <div className="flex flex-col items-center space-y-1">
                 <span className="text-[10px] font-bold text-[#007cd8] uppercase tracking-[0.2em] animate-pulse">
-                  {loadingSteps[loadingStep].text}
+                   Applying brand system...
                 </span>
               </div>
             </motion.div>
@@ -150,7 +135,7 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               className={cn(
-                "relative w-full max-w-md max-h-[90%] shadow-2xl transition-all duration-500 bg-white ring-1 ring-slate-200 mt-10",
+                "relative w-full max-w-2xl shadow-2xl transition-all duration-500 bg-white ring-1 ring-slate-200 mt-10",
                 currentPlatform.aspect
               )}
             >
@@ -168,7 +153,7 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
                   <div className="flex-1 flex flex-col p-8 font-['Poppins'] relative z-10 overflow-hidden">
                     <div className="flex justify-between items-start mb-4 flex-shrink-0">
                       <h1 className="text-2xl font-extrabold tracking-tight whitespace-nowrap bg-gradient-to-r from-[#00b15c] to-[#007cd8] bg-clip-text text-transparent">
-                        Hiring - Immediate
+                        {data.headline || "Hiring - Immediate"}
                       </h1>
                       <div className="w-28 h-8 flex items-center justify-end">
                         <img src={BlueLogo.src} alt="Abilytics" className="max-w-full max-h-full object-contain" />
@@ -178,9 +163,9 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
                     <div className="mb-2 flex-shrink-0">
                       <h2 className={cn(
                         "font-bold text-[#021a5a] tracking-tight leading-tight",
-                        getRoleFontSize(data.role || data.headline, pointCount)
+                        pointCount > 4 ? "text-[20px]" : "text-[21px]"
                       )}>
-                        {data.role || data.headline || "Business Development Associate"}
+                        {data.role || "Business Development Associate"}
                       </h2>
                     </div>
 
@@ -207,15 +192,15 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
                       <div className="flex justify-between items-end">
                         <div className="space-y-0.5">
                           <p className="text-[10px] font-medium text-[#021a5a]">
-                            <span className="text-[#00b15c] font-bold">Experience:</span> {data.experience || "0–1 year"}
+                            <span className="text-[#00b15c] font-bold">Experience:</span> {data.experience || ""}
                           </p>
                           <p className="text-[10px] font-medium text-[#021a5a]">
-                            <span className="text-[#00b15c] font-bold">Location:</span> {data.location || "Bangalore / Remote"}
+                            <span className="text-[#00b15c] font-bold">Location:</span> {data.location || ""}
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="bg-[#007cd8] text-white px-5 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest mb-1.5 shadow-sm">
-                            send resume
+                          <div className="bg-[#007cd8] text-white px-6 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest mb-1.5 shadow-sm whitespace-nowrap inline-block">
+                            {data.cta || "send resume"}
                           </div>
                           <p className="text-[8px] font-bold text-[#021a5a] opacity-60">
                             {data.email || "hr@abilytics.com"}
