@@ -5,17 +5,28 @@ import {
   ZoomIn, Download as DownloadIcon, 
   Layout, Smartphone, Monitor,
   Sparkles, ShieldCheck, Zap,
-  ImageIcon
+  ImageIcon, Phone, Mail, Globe, MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CreativeData } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
+import { ChevronDown } from 'lucide-react';
 
 // Direct imports for reliable asset rendering
+import WhiteLogo from '../app/images/Logo_white.svg';
 import BlueLogo from '../app/images/Blue_Logo.svg';
 import IconHiring from '../app/images/icon_hiring.svg';
 import HiringBg from '../app/images/hiring_bg.png';
+import BusinessFront from '../app/images/Business_Front.png';
+import BusinessBack from '../app/images/Business_Back.png';
+import AbilyticsQR from '../app/images/Abilytics_QR.svg';
+import BirdIllustration from '../app/images/Bird.svg';
+import AiEngIcon from '../app/images/Ai_Eng.svg';
+import DataEngIcon from '../app/images/Data_Eng.svg';
+import PlatformEngIcon from '../app/images/Platform_Eng.svg';
+import ProductEngIcon from '../app/images/Product_Eng.svg';
 
 interface PreviewPanelProps {
   imageUrl: string | null;
@@ -24,15 +35,18 @@ interface PreviewPanelProps {
 }
 
 const platforms = [
-  { id: 'linkedin', label: 'LinkedIn', icon: Layout, aspect: 'aspect-square' },
+  { id: 'linkedin', label: 'Default', icon: Layout, aspect: 'aspect-square' },
   { id: 'portrait', label: 'Portrait', icon: Smartphone, aspect: 'aspect-[9/16]' },
   { id: 'landscape', label: 'Landscape', icon: Monitor, aspect: 'aspect-[16/9]' },
 ];
 
 export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPanelProps) {
   const [selectedPlatform, setSelectedPlatform] = useState('linkedin');
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const posterRef = useRef<HTMLDivElement>(null);
+  const frontRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isGenerating) {
@@ -43,15 +57,58 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
     }
   }, [isGenerating]);
 
-  const handleDownload = async () => {
+  const handleDownload = async (format: 'png' | 'pdf') => {
+    setShowDownloadMenu(false);
+    
+    if (data?.creativeType === 'businessCard') {
+      if (!frontRef.current || !backRef.current) return;
+      try {
+        const frontUrl = await toPng(frontRef.current, { quality: 1, pixelRatio: 2, width: 1098, height: 661 });
+        const backUrl = await toPng(backRef.current, { quality: 1, pixelRatio: 2, width: 1098, height: 661 });
+        
+        if (format === 'pdf') {
+          const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1098, 661] });
+          pdf.addImage(frontUrl, 'PNG', 0, 0, 1098, 661);
+          pdf.addPage([1098, 661], 'landscape');
+          pdf.addImage(backUrl, 'PNG', 0, 0, 1098, 661);
+          pdf.save(`BusinessCard_${data.name?.replace(/\s+/g, '_')}.pdf`);
+        } else {
+          const download = (url: string, name: string) => {
+            const link = document.createElement('a');
+            link.download = name;
+            link.href = url;
+            link.click();
+          };
+          download(frontUrl, `BusinessCard_Front_${data.name?.replace(/\s+/g, '_')}.png`);
+          setTimeout(() => download(backUrl, `BusinessCard_Back_${data.name?.replace(/\s+/g, '_')}.png`), 500);
+        }
+      } catch (err) {
+        console.error('Failed to download business cards:', err);
+      }
+      return;
+    }
+
     if (!posterRef.current) return;
     try {
       const dataUrl = await toPng(posterRef.current, { quality: 1, pixelRatio: 2 });
-      const link = document.createElement('a');
-      const roleName = data?.role?.replace(/\s+/g, '_') || 'Creative';
-      link.download = `Hiring_${roleName}_Abilytics.png`;
-      link.href = dataUrl;
-      link.click();
+      
+      if (format === 'pdf') {
+        const pdf = new jsPDF({
+          orientation: currentPlatform.id === 'portrait' ? 'portrait' : 'landscape',
+          unit: 'px',
+          format: currentPlatform.id === 'portrait' ? [607, 1080] : [1080, 1080] 
+        });
+        const width = pdf.internal.pageSize.getWidth();
+        const height = pdf.internal.pageSize.getHeight();
+        pdf.addImage(dataUrl, 'PNG', 0, 0, width, height);
+        pdf.save(`Hiring_${data?.role?.replace(/\s+/g, '_')}.pdf`);
+      } else {
+        const link = document.createElement('a');
+        const roleName = data?.role?.replace(/\s+/g, '_') || 'Creative';
+        link.download = `Hiring_${roleName}_Abilytics.png`;
+        link.href = dataUrl;
+        link.click();
+      }
     } catch (err) {
       console.error('Failed to download image:', err);
     }
@@ -83,22 +140,61 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
         </div>
 
         <div className="flex items-center space-x-3">
-          <button className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-slate-900 shadow-sm transition-colors">
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <button 
-            onClick={handleDownload}
-            disabled={isGenerating || !data}
-            className="flex items-center space-x-2 px-6 py-2.5 bg-[#021a5a] hover:bg-[#03247c] text-white rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all shadow-md disabled:opacity-50"
-          >
-            <DownloadIcon className="w-3.5 h-3.5" />
-            <span>Download PNG</span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+              disabled={isGenerating || !data}
+              className="flex items-center space-x-2 px-6 py-2.5 bg-[#021a5a] hover:bg-[#03247c] text-white rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all shadow-md disabled:opacity-50"
+            >
+              <DownloadIcon className="w-3.5 h-3.5" />
+              <span>Download Asset</span>
+              <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showDownloadMenu && "rotate-180")} />
+            </button>
+
+            <AnimatePresence>
+              {showDownloadMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden"
+                >
+                  <button
+                    onClick={() => handleDownload('png')}
+                    className="w-full px-4 py-3 flex items-center space-x-3 hover:bg-slate-50 text-left transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <ImageIcon className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">PNG Image</p>
+                      <p className="text-[10px] text-slate-400">High Quality Photo</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleDownload('pdf')}
+                    className="w-full px-4 py-3 flex items-center space-x-3 hover:bg-slate-50 text-left transition-colors border-t border-slate-100"
+                  >
+                    <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                      <Layout className="w-4 h-4 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">PDF Document</p>
+                      <p className="text-[10px] text-slate-400">Print Ready File</p>
+                    </div>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
       {/* Main Preview Area */}
-      <div className="flex-1 bg-[#f8fafc] border border-slate-200 rounded-2xl relative flex flex-col items-center justify-start p-12 overflow-hidden shadow-inner min-h-0">
+      <div className={cn(
+        "flex-1 bg-[#f8fafc] border border-slate-200 rounded-2xl relative flex flex-col items-center justify-start overflow-hidden shadow-inner min-h-0 custom-scrollbar",
+        data?.creativeType === 'businessCard' ? "p-8 overflow-y-auto" : "p-12"
+      )}>
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none" />
         
         <AnimatePresence mode="wait">
@@ -127,7 +223,162 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
               <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center">
                 <ImageIcon className="w-8 h-8" />
               </div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Your generated poster will appear here</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Your generated asset will appear here</p>
+            </motion.div>
+          ) : data.creativeType === 'businessCard' ? (
+            <motion.div
+              key="business-card"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="w-full flex flex-col items-center space-y-12"
+            >
+              {/* FRONT CARD */}
+              <div className="w-full max-w-3xl space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="h-[1px] flex-1 bg-slate-200" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Front Side</span>
+                  <div className="h-[1px] flex-1 bg-slate-200" />
+                </div>
+                <div className="aspect-[1098/661] w-full bg-white shadow-2xl rounded-sm overflow-hidden ring-1 ring-slate-200 relative group">
+                  <div 
+                    ref={frontRef} 
+                    className="absolute top-0 left-0 origin-top-left flex flex-col"
+                    style={{ width: '1098px', height: '661px', transform: 'scale(var(--card-scale, 1))' }}
+                  >
+                    <img src={BusinessFront.src} alt="Front Background" className="absolute inset-0 w-full h-full object-cover z-0" />
+                    <div className="absolute inset-0 bg-black/25 z-[1]" />
+                    
+                    <div className="relative z-10 w-full h-full p-[64px] flex flex-col justify-between font-['Inter']">
+                      {/* GROUP 1: Logo */}
+                      <div className="h-[48px] w-fit flex-shrink-0">
+                        <img src={WhiteLogo.src} alt="Abilytics" className="h-full w-auto object-contain" />
+                      </div>
+
+                      {/* GROUP 2: Name + Designation pill */}
+                      <div className="flex flex-col flex-shrink-0">
+                        <h2 className="text-[48px] font-bold uppercase tracking-[0.05em] leading-tight whitespace-nowrap overflow-hidden bg-gradient-to-r from-[#00b15c] to-[#007cd8] bg-clip-text text-transparent font-['Space_Grotesk']">
+                                {data.name || "YOUR NAME"}
+                              </h2>
+                        <div className="w-fit px-10 py-3.5 rounded-full bg-gradient-to-r from-[#00b15c] to-[#007cd8] shadow-[0px_4px_16px_rgba(0,124,216,0.15)] mt-6">
+                          <span className="text-[16px] font-black text-white tracking-widest uppercase">
+                            {data.designation || "DESIGNATION"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* GROUP 3: Four contact rows */}
+                      <div className="space-y-4.5 flex flex-col flex-shrink-0">
+                        <div className="flex items-center space-x-4 text-white">
+                          <Phone className="w-5 h-5 text-[#00D4AA]" />
+                          <span className="text-[17px] font-medium">{data.phone || "+91 00000 00000"}</span>
+                        </div>
+                        <div className="flex items-center space-x-4 text-white">
+                          <Mail className="w-5 h-5 text-[#00D4AA]" />
+                          <span className="text-[17px] font-medium">{data.email || "hello@abilytics.com"}</span>
+                        </div>
+                        <div className="flex items-center space-x-4 text-white">
+                          <Globe className="w-5 h-5 text-[#00D4AA]" />
+                          <span className="text-[17px] font-medium">abilytics.com</span>
+                        </div>
+                        <div className="flex items-start space-x-4 text-white max-w-[55%]">
+                          <MapPin className="w-5 h-5 text-[#00D4AA] mt-1 flex-shrink-0" />
+                          <span className="text-[17px] font-medium leading-relaxed">
+                            16-C Tower 1, Trans Asia Cyber Park, Infopark Phase 2, Kakkanad, Kochi, Kerala 682303
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right Section - Bird Placement (Symmetrically aligned to Logo top and Right padding) */}
+                      <div className="absolute top-[64px] right-[64px] w-[35%] h-[70%] flex items-start justify-end opacity-90 z-0 pointer-events-none">
+                        <img src={BirdIllustration.src} alt="Bird" className="max-h-full w-auto object-contain" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* BACK CARD */}
+              <div className="w-full max-w-3xl space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="h-[1px] flex-1 bg-slate-200" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Back Side</span>
+                  <div className="h-[1px] flex-1 bg-slate-200" />
+                </div>
+                <div className="aspect-[1098/661] w-full bg-white shadow-2xl rounded-sm overflow-hidden ring-1 ring-slate-200 relative">
+                  <div 
+                    ref={backRef} 
+                    className="absolute top-0 left-0 origin-top-left flex flex-col"
+                    style={{ width: '1098px', height: '661px', transform: 'scale(var(--card-scale, 1))' }}
+                  >
+                    <img src={BusinessBack.src} alt="Back Background" className="absolute inset-0 w-full h-full object-cover z-0" />
+                    <div className="absolute inset-0 bg-black/25 z-[1]" />
+                    
+                    <div className="relative z-10 w-full h-full p-[64px] flex flex-col justify-between font-['Inter'] text-white">
+                      {/* GROUP 1: Logo & URL */}
+                      <div className="flex justify-between items-start flex-shrink-0">
+                        <div className="h-[48px]">
+                          <img src={WhiteLogo.src} alt="Abilytics" className="h-full w-auto object-contain" />
+                        </div>
+                        <span className="text-[17px] font-bold tracking-wide">abilytics.com</span>
+                      </div>
+
+                      {/* GROUP 2: Tagline & Description */}
+                      <div className="flex flex-col flex-shrink-0 max-w-[90%]">
+                        <h3 className="text-[28px] font-bold mb-6 bg-gradient-to-r from-[#00b15c] to-[#007cd8] bg-clip-text text-transparent leading-tight font-['Space_Grotesk']">
+                          Agentic solutions partner from idea to launch.
+                        </h3>
+                        <p className="text-[17px] opacity-80 leading-[1.6]">
+                          We orchestrate data, AI agents and models to deliver intelligent automation, real-time insights, and smarter, faster, more resilient operations.
+                        </p>
+                      </div>
+
+                      {/* GROUP 3: Services */}
+                      <div className="space-y-[20px] flex flex-col flex-shrink-0">
+                        {[
+                          { label: "AI ENGINEERING", icon: AiEngIcon },
+                          { label: "DATA ENGINEERING", icon: DataEngIcon },
+                          { label: "PLATFORM ENGINEERING", icon: PlatformEngIcon },
+                          { label: "PRODUCT ENGINEERING", icon: ProductEngIcon },
+                        ].map((service, idx) => (
+                          <div key={idx} className="flex items-center space-x-6">
+                            <img src={service.icon.src} alt="" className="w-7 h-7 object-contain" />
+                            <span className="text-[22px] font-bold tracking-[0.08em] uppercase bg-gradient-to-r from-[#00b15c] to-[#007cd8] bg-clip-text text-transparent">
+                              {service.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* QR Code (Symmetrically aligned to right/bottom padding) */}
+                      <div className="absolute bottom-[64px] right-[64px] pointer-events-none">
+                        <div className="bg-white p-2 rounded-[10px] w-[155px] h-[155px]">
+                          <img src={AbilyticsQR.src} alt="QR Code" className="w-full h-full object-contain" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <style dangerouslySetInnerHTML={{ __html: `
+                :root {
+                  --card-scale: 0.5;
+                }
+                @media (min-width: 1024px) {
+                  :root {
+                    --card-scale: 0.7;
+                  }
+                }
+                @media (min-width: 1280px) {
+                  :root {
+                    --card-scale: 0.65;
+                  }
+                }
+                .aspect-\\[1098\\/661\\] {
+                  height: calc(var(--card-scale) * 661px);
+                  width: calc(var(--card-scale) * 1098px);
+                }
+              `}} />
             </motion.div>
           ) : (
             <motion.div
@@ -199,7 +450,7 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="bg-[#007cd8] text-white px-6 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest mb-1.5 shadow-sm whitespace-nowrap inline-block">
+                          <div className="bg-[#007cd8] text-white px-4 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest mb-1 shadow-sm whitespace-nowrap inline-block">
                             {data.cta || "send resume"}
                           </div>
                           <p className="text-[8px] font-bold text-[#021a5a] opacity-60">
@@ -213,7 +464,7 @@ export default function PreviewPanel({ imageUrl, isGenerating, data }: PreviewPa
                   <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/50 flex flex-col justify-between p-10 z-10">
                     <div className="flex justify-between items-start">
                       <div className="w-24 h-12 bg-white/20 backdrop-blur rounded-lg p-3 flex items-center justify-center overflow-hidden border border-white/20">
-                        <img src={BlueLogo.src} alt="Logo" className="max-w-full max-h-full object-contain invert brightness-0" />
+                        <img src={WhiteLogo.src} alt="Logo" className="max-w-full max-h-full object-contain invert brightness-0" />
                       </div>
                     </div>
                     <div className="space-y-4">

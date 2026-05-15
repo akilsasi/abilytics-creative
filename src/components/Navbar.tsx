@@ -22,10 +22,6 @@ export default function Navbar() {
       </nav>
 
       <div className="flex items-center space-x-6">
-        <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-md">
-          <Database className="w-3.5 h-3.5 text-[#007cd8]" />
-          <span className="text-xs font-semibold text-slate-700">50/100 Credits</span>
-        </div>
         
         <div className="flex items-center space-x-4">
           <button className="text-slate-400 hover:text-slate-900 transition-colors">

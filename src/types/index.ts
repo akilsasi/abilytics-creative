@@ -1,4 +1,4 @@
-export type CreativeType = 'hiring' | 'webinar' | 'womensDay' | 'launch';
+export type CreativeType = 'hiring' | 'webinar' | 'womensDay' | 'launch' | 'businessCard';
 
 export interface StyleControls {
   creativityLevel: number;
@@ -22,6 +22,10 @@ export interface CreativeData {
   experience?: string;
   location?: string;
   email?: string;
+  // Business Card Specifics
+  name?: string;
+  designation?: string;
+  phone?: string;
 }
 
 export interface GenerationResult {
